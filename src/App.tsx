@@ -52,6 +52,8 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<'easy' | 'hard'>('easy')
   const gridSize = useMemo(() => difficulty === 'easy' ? 4 : 6, [difficulty])
 
+  const [winDialogOpen, setWinDialogOpen] = useState(false)
+  const [lastResult, setLastResult] = useState<HistoryItem | null>(null)
   const [deck, setDeck] = useState<CardType[]>([])
   const [choice1, setChoice1] = useState<CardType | null>(null)
   const [choice2, setChoice2] = useState<CardType | null>(null)
@@ -92,10 +94,10 @@ export default function App() {
       const next = [record, ...history].slice(0, 50)
       setHistory(next)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      toast.success('You won! Saved to history.')
+      setLastResult(record)
+      setWinDialogOpen(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deck])
+  }, [deck, attempts, gridSize, timeMs, history])
 
   function resetChoices() {
     setChoice1(null)
@@ -122,6 +124,11 @@ export default function App() {
     if (choice1 && card.id === choice1.id) return
     if (!choice1) setChoice1(card)
     else if (!choice2) setChoice2(card)
+  }
+
+  function handleNextGame() {
+    setWinDialogOpen(false)
+    startNewGame(difficulty)
   }
 
   useEffect(() => {
@@ -176,8 +183,23 @@ export default function App() {
               ))}
             </TableBody>
           </Table>
+
         </DialogContent>
       </Dialog>
+      <Dialog open={winDialogOpen} onClose={handleNextGame}>
+        <DialogTitle>🎉 Congratulations!</DialogTitle>
+        <DialogContent>
+          {lastResult && (
+            <Stack spacing={2}>
+              <Typography>You completed a {lastResult.grid} game!</Typography>
+              <Typography>Attempts: {lastResult.attempts}</Typography>
+              <Typography>Time: {formatTime(lastResult.timeMs)}</Typography>
+              <Chip label="Start New Game" onClick={handleNextGame} clickable color="primary" />
+            </Stack>
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       <ToastContainer
         position="bottom-left"
